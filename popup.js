@@ -30,3 +30,17 @@ document.querySelectorAll('.color-btn').forEach(button => {
     });
   });
 });
+document.addEventListener('DOMContentLoaded', function () {
+  const highlightBtn = document.getElementById('highlight-btn');
+  const colorContainer = document.getElementById('color-container');
+
+  // Show color container when highlight button is hovered
+  highlightBtn.addEventListener('mouseover', function() {
+    colorContainer.style.display = 'block';
+  });
+
+  // Hide color container when mouse leaves the color container
+  colorContainer.addEventListener('mouseleave', function() {
+    colorContainer.style.display = 'none';
+  });
+});
