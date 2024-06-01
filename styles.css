@@ -5,9 +5,19 @@ body {
 .highlight-btn {
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
+    border-style: solid;
+    cursor: pointer;
+    background-color: rgb(218, 255, 251);
+}
+.color-btn{
+    border-radius: 20px;
+    border-width: 1.2px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
@@ -15,19 +25,19 @@ body {
 .pen-btn {
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
 }
-.erase {
+.erase {        
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
@@ -35,9 +45,9 @@ body {
 .save-btn {
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
@@ -45,9 +55,9 @@ body {
 .note-btn {
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
@@ -55,9 +65,9 @@ body {
 .undo-btn {
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
@@ -65,9 +75,9 @@ body {
 .pen{
     border-radius: 20px;
     border-width: 1.2px;
-    width: 30px; 
-    height: 30px;
-    margin: 1px 3px;
+    width: 40px; 
+    height: 40px;
+    margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
     background-color: rgb(218, 255, 251);
@@ -76,16 +86,24 @@ body {
     display: flex;
     justify-content: space-evenly;
 }
+button{
+    transition: opacity 0.3s, transform 0.3s;
+}
 button img {
     width: 100%; 
     height: auto; 
 } 
+.color-container{
+    display: none;
+}
 button:hover {
     opacity: 80%;
+    transform: scale(1.3);
 }
 button:active {
     opacity: 70%;
+    transform: scale(0.95);
 }
 .highlight-text::selection {
     background-color: yellow;
-  }
+} 
