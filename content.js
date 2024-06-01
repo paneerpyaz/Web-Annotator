@@ -16,6 +16,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "undo-btn") {
     undoLastAction();
   }
+  else if (message.action === "save") {
+    console.log("Saving annotations");
+    chrome.runtime.sendMessage({ action: "saveAnnotation", annotat: annotations, high: highlights }, (response) => {
+      if (response && response.status === "success") {
+        alert("Annotations Saved!");
+      }
+    });
+  }
 });
 
 function activateMarker() {
@@ -24,8 +32,21 @@ function activateMarker() {
     createCanvas();
   }
 }
+function deleteCanvas() {
+  if (canvas) {   
+    canvas.parentNode.removeChild(canvas);
+    canvas.removeEventListener('mousedown', startDrawing);
+    canvas.removeEventListener('mousemove', draw);
+    canvas.removeEventListener('mouseup', stopDrawing);
+    canvas.removeEventListener('mouseout', stopDrawing);
+    canvas = null;
+    ctx = null;
+    annotations = [];
+  }
+}
 
 function activateHighlighter() {
+  deleteCanvas();
   currentTool = 'text-highlighter';
   document.addEventListener('mouseup', highlightSelection);
 }
@@ -107,16 +128,13 @@ function redraw() {
         ctx.lineTo(annotation.endX, annotation.endY);
         ctx.stroke();
       } else if (annotation.tool === 'text-highlighter') {
-        const parent = document.evaluate(annotation.parentXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-        if (parent) {
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = annotation.html;
-          parent.appendChild(tempDiv.firstChild);
-        }
+        ctx.fillStyle = annotation.color;
+        ctx.fillRect(annotation.rect.left, annotation.rect.top, annotation.rect.width, annotation.rect.height);
       }
     });
   }
 }
+
 
 function highlightSelection() {
   if (currentTool !== 'text-highlighter') return;
@@ -146,7 +164,6 @@ function getXPath(element) {
     if (sibling.nodeType === 1 && sibling.tagName === element.tagName) ix++;
   }
 }
-
 function undoLastAction() {
   if (annotations.length > 0) {
     const lastAnnotation = annotations.pop();
