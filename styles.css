@@ -2,7 +2,7 @@ body {
     background-color: rgb(52, 52, 53);
 }
 
-.highlight-btn {
+.highlighter {
     border-radius: 20px;
     border-width: 1.2px;
     width: 40px; 
@@ -12,7 +12,7 @@ body {
     cursor: pointer;
     background-color: rgb(218, 255, 251);
 }
-.color-btn{
+.save{
     border-radius: 20px;
     border-width: 1.2px;
     width: 40px; 
@@ -22,7 +22,7 @@ body {
     cursor: pointer;
     background-color: rgb(218, 255, 251);
 }
-.pen-btn {
+.note{
     border-radius: 20px;
     border-width: 1.2px;
     width: 40px; 
@@ -32,37 +32,7 @@ body {
     cursor: pointer;
     background-color: rgb(218, 255, 251);
 }
-.erase {        
-    border-radius: 20px;
-    border-width: 1.2px;
-    width: 40px; 
-    height: 40px;
-    margin: 6px 6px;
-    border-style: solid;
-    cursor: pointer;
-    background-color: rgb(218, 255, 251);
-}
-.save-btn {
-    border-radius: 20px;
-    border-width: 1.2px;
-    width: 40px; 
-    height: 40px;
-    margin: 6px 6px;
-    border-style: solid;
-    cursor: pointer;
-    background-color: rgb(218, 255, 251);
-}
-.note-btn {
-    border-radius: 20px;
-    border-width: 1.2px;
-    width: 40px; 
-    height: 40px;
-    margin: 6px 6px;
-    border-style: solid;
-    cursor: pointer;
-    background-color: rgb(218, 255, 251);
-}
-.undo-btn {
+.undo{
     border-radius: 20px;
     border-width: 1.2px;
     width: 40px; 
@@ -80,7 +50,7 @@ body {
     margin: 6px 6px;
     border-style: solid;
     cursor: pointer;
-    background-color: rgb(218, 255, 251);
+    background-color:  rgb(218, 255, 251);
 }
 .btn-container {
     display: flex;
@@ -93,8 +63,22 @@ button img {
     width: 100%; 
     height: auto; 
 } 
-.color-container{
-    display: none;
+.stroke-color{
+    margin: 6px 6px;    
+    width: 37px;
+    height: 37px;
+    align-self: center;
+    border-radius: 10%;
+    background-color:  rgb(218, 255, 251);
+} 
+.stroke-color:hover{
+    transition: opacity 0.3s, transform 0.3s;
+    opacity: 80%;
+    transform: scale(1.3);
+}
+.stroke-color:active{
+    opacity: 70%;
+    transform: scale(0.95);
 }
 button:hover {
     opacity: 80%;

@@ -1,82 +1,153 @@
+let startX, startY, path;
+let canvas, ctx;
+let ClickTime;
+
 let currentTool = null;
 let currentColor = 'red';
+
 let annotations = [];
-let undoStack = [];
+let highlights = [];
+let Actions = [];
+
 let isDrawing = false;
-let startX, startY;
-let canvas, ctx;
-
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "pen") {
-    activateMarker();
-  } else if (message.action === "highlight-btn") {
-    currentColor = message.color || 'yellow';
-    activateHighlighter();
-  } else if (message.action === "undo-btn") {
-    undoLastAction();
-  }
-  else if (message.action === "save-btn") {
-    console.log("Saving annotations");
-    saveAnnotations();
-  }
-});
-
-function activateMarker() {
-  currentTool = 'pen';
-  if (!canvas) {
-    createCanvas();
-  }
-}
-function deleteCanvas() {
-  if (canvas) {   
-    canvas.parentNode.removeChild(canvas);
-    canvas.removeEventListener('mousedown', startDrawing);
-    canvas.removeEventListener('mousemove', draw);
-    canvas.removeEventListener('mouseup', stopDrawing);
-    canvas.removeEventListener('mouseout', stopDrawing);
-    canvas = null;
-    ctx = null;
-    annotations = [];
-  }
-}
-
-function activateHighlighter() {
-  deleteCanvas();
-  currentTool = 'text-highlighter';
-  document.addEventListener('mouseup', highlightSelection);
-}
+let tool_used = 2;
+let TextSelecting = false;
+let MouseMovedOrNot = false;
 
 function createCanvas() {
   canvas = document.createElement('canvas');
   canvas.style.position = 'absolute';
   canvas.style.top = '0';
   canvas.style.left = '0';
+  canvas.style.pointerEvents = 'none';
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   document.body.appendChild(canvas);
   ctx = canvas.getContext('2d');
-
-  canvas.addEventListener('mousedown', startDrawing);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', stopDrawing);
-  canvas.addEventListener('mouseout', stopDrawing);
-
+  canvas.addEventListener('mousedown', handleMouseDown);
+  canvas.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener('mouseup', handleMouseUp);
   loadAnnotations();
   loadToolState();
 }
 
+function undoLastHighlight() {
+  if (highlights.length > 0) {
+    const lastHighlight = highlights.pop();
+    const span = document.querySelector(`span[highlight-id="${lastHighlight.id}"]`);
+    if (span) {
+      span.replaceWith(document.createTextNode(span.textContent));
+      Actions.push(2);
+      console.log("Last highlight undone");
+    }
+  }
+}
+
+function resizeCanvasByRatio(ratio) {
+  const newWidth = window.innerWidth * ratio;
+  const newHeight = window.innerHeight * ratio;
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  console.log(`Canvas resized to ${newWidth}x${newHeight}`);
+}
+
+function confirmClearAllHighlights() {
+  const confirmation = confirm("Are you sure you want to clear all highlights?");
+  if (confirmation) {
+    highlights = [];
+    document.querySelectorAll('span[highlight-id]').forEach(span => {
+      span.replaceWith(document.createTextNode(span.textContent));
+    });
+    console.log("All highlights cleared");
+  }
+}
+
+function changePenToolWidth(width) {
+  ctx.lineWidth = width;
+  console.log(`Pen tool width changed to ${width}`);
+}
+
+function changeHighlightColor(highlightId, newColor) {
+  const highlight = highlights.find(h => h.id === highlightId);
+  if (highlight) {
+    highlight.color = newColor;
+    const span = document.querySelector(`span[highlight-id="${highlightId}"]`);
+    if (span) {
+      span.style.backgroundColor = newColor;
+      console.log(`Highlight color changed to ${newColor} for highlight ID ${highlightId}`);
+    }
+  }
+}
+function handleMouseDown(e) {
+  if (currentTool === 'pen') {
+    startDrawing(e);
+  } else if (currentTool === 'highlighter') {
+    TextSelecting = true;
+    MouseMovedOrNot = false;
+  }
+}
+
+function clearAllAnnotationsAndHighlights() {
+  annotations = [];
+  highlights = [];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.querySelectorAll('span[highlight-id]').forEach(span => {
+    span.replaceWith(document.createTextNode(span.textContent));
+  });
+  console.log("All annotations and highlights cleared");
+}
+
+function handleMouseMove(e) {
+  if (currentTool === 'pen' && isDrawing) {
+    draw(e);
+  } else if (TextSelecting) {
+    MouseMovedOrNot = true;
+  }
+}
+
+function handleMouseUp(e) {
+  if (currentTool === 'pen' && isDrawing) {
+    stopDrawing(currentColor);
+  } else if (currentTool === 'highlighter' && TextSelecting) {
+    TextSelecting = false;
+    if (MouseMovedOrNot) {
+      clearTimeout(ClickTime);
+      ClickTime = setTimeout(() => {
+        startHighlighting();
+      }, 200);
+    }
+  }
+}
+
+function clearAllAnnotationsAndHighlights() {
+  annotations = [];
+  highlights = [];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.querySelectorAll('span[highlight-id]').forEach(span => {
+    span.replaceWith(document.createTextNode(span.textContent));
+  });
+  console.log("All annotations and highlights cleared");
+}
+
 function startDrawing(e) {
-  if (currentTool !== 'pen') return;
+  canvas.style.pointerEvents = 'auto';
   isDrawing = true;
   startX = e.clientX;
   startY = e.clientY;
   path = [{ x: startX, y: startY }];
 }
-
+function exportAnnotationsAsJSON() {
+  const data = JSON.stringify({ annotations, highlights });
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'annotations.json';
+  link.click();
+  console.log("Annotations exported as JSON");
+}
 function draw(e) {
   if (!isDrawing) return;
-
   ctx.strokeStyle = currentColor;
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
@@ -87,107 +158,158 @@ function draw(e) {
   ctx.lineTo(e.clientX, e.clientY);
   ctx.stroke();
 
-  annotations.push({ tool: 'pen', color: currentColor, startX, startY, endX: e.clientX, endY: e.clientY });
-
   startX = e.clientX;
   startY = e.clientY;
   path.push({ x: startX, y: startY });
 }
 
-function stopDrawing() {
+function stopDrawing(color) {
   if (!isDrawing) return;
   isDrawing = false;
   if (path.length > 1) {
-    annotations.push({ tool: currentTool, color: currentColor, path: path });
+    Actions.push(1);
+    annotations.push({ tool: 'pen', color: color, path: path });
   }
 }
 
-function saveAnnotations() {
-  chrome.storage.local.set({ annotations: annotations }, () => {
-    if (chrome.runtime.lastError) {
-      console.error("Error saving annotations:", chrome.runtime.lastError);
-      sendResponse({ status: "error", message: "Error saving annotations" });
-    } else {
-      console.log("Annotations saved successfully");
-      sendResponse({ status: "success", message: "Annotations saved successfully" });
-    }
-  });
+function WrapTheText(color, notes) {
+  let selection = window.getSelection();
+  if (selection.rangeCount > 0) {
+    let range = selection.getRangeAt(0);
+    let span = document.createElement('span');
+    span.style.backgroundColor = color;
+    span.setAttribute('highlight-id', Date.now()); 
+    range.surroundContents(span);
+    Actions.push(2);
+    highlights.push({ span: span.outerHTML, range: range.toString(), color: color, id: span.getAttribute('highlight-id'), note: notes });
+  }
+}
+
+function startHighlighting() {
+  if (currentTool === 'highlighter') {
+    let note = prompt("Enter a note for this highlight:");
+    WrapTheText(currentColor, note);
+  }
 }
 
 function loadAnnotations() {
-  chrome.storage.local.get('annotations', (data) => {
-    if (chrome.runtime.lastError) {
-      console.error("Error loading annotations:", chrome.runtime.lastError);
+  chrome.runtime.sendMessage({ action: "loadAnnotations" }, (response) => {
+    if (response && response.annotations) {
+      annotations = response.annotations;
+      highlights = response.highlights;
+      tool_used = 2;
+      redraw(tool_used);
     } else {
-      annotations = data.annotations || [];
-      redraw();
+      console.log("No annotations found");
+    }
+  });
+}
+function rotateCanvasContent(angle) {
+  const radians = angle * (Math.PI / 180);
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate(radians);
+  ctx.translate(-canvas.width / 2, -canvas.height / 2);
+  ctx.drawImage(canvas, 0, 0);
+  ctx.restore();
+  console.log(`Canvas content rotated by ${angle} degrees`);
+}
+function loadToolState() {
+  chrome.storage.local.get(['PenStatus', 'HighlighterStatus', 'ColorStatus'], (result) => {
+    if (result.PenStatus === true) {
+      currentTool = 'pen';
+      canvas.style.pointerEvents = 'auto';
+      currentColor = result.ColorStatus || '#FFFF00';
+    } else if (result.HighlighterStatus === true) {
+      currentTool = 'highlighter';
+      canvas.style.pointerEvents = 'none';
+      currentColor = result.ColorStatus || '#FFFF00';
+    } else {
+      currentTool = null;
+      canvas.style.pointerEvents = 'none';
+      currentColor = result.ColorStatus || '#FFFF00';
     }
   });
 }
 
-function redraw() {
-  if (ctx) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function redraw(tool_used) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (tool_used === 2 || tool_used === 1) {
+    highlights.forEach(highlight => {
+      let span = document.createElement('span');
+      span.innerHTML = highlight.range;
+      span.style.backgroundColor = highlight.color;
+      span.setAttribute('highlight-id', highlight.id);
+      let bodyText = document.body.innerHTML;
+      let highlightedText = bodyText.replace(highlight.range, span.outerHTML);
+      document.body.innerHTML = highlightedText;
+    });
+  }
+  if (tool_used === 2 || tool_used === 1) {
     annotations.forEach(annotation => {
-      if (annotation.tool === 'pen') {
-        ctx.strokeStyle = annotation.color;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 1.0;
+      ctx.strokeStyle = annotation.color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 1.0;
+      ctx.lineCap = 'round';
+      const paths = annotation.path;
+      for (let i = 1; i < paths.length; i++) {
         ctx.beginPath();
-        ctx.moveTo(annotation.startX, annotation.startY);
-        ctx.lineTo(annotation.endX, annotation.endY);
+        ctx.moveTo(paths[i - 1].x, paths[i - 1].y);
+        ctx.lineTo(paths[i].x, paths[i].y);
         ctx.stroke();
-      } else if (annotation.tool === 'text-highlighter') {
-        ctx.fillStyle = annotation.color;
-        ctx.fillRect(annotation.rect.left, annotation.rect.top, annotation.rect.width, annotation.rect.height);
       }
     });
   }
 }
 
+createCanvas();
 
-function highlightSelection() {
-  if (currentTool !== 'text-highlighter') return;
-  const selection = window.getSelection();
-  if (!selection.isCollapsed) {
-    const range = selection.getRangeAt(0);
-    const span = document.createElement('span');
-    span.style.backgroundColor = currentColor;
-    span.id = 'highlight-' + new Date().getTime();
-    span.appendChild(range.extractContents());
-    range.insertNode(span);
-
-    selection.removeAllRanges();
-
-    annotations.push({ tool: 'text-highlighter', html: span.outerHTML, parentXPath: getXPath(span.parentNode), id: span.id });
-  }
-}
-
-function getXPath(element) {
-  if (element.id !== '') return 'id("' + element.id + '")';
-  if (element === document.body) return element.tagName;
-  let ix = 0;
-  const siblings = element.parentNode.childNodes;
-  for (let i = 0; i < siblings.length; i++) {
-    const sibling = siblings[i];
-    if (sibling === element) return getXPath(element.parentNode) + '/' + element.tagName + '[' + (ix + 1) + ']';
-    if (sibling.nodeType === 1 && sibling.tagName === element.tagName) ix++;
-  }
-}
-function undoLastAction() {
-  if (annotations.length > 0) {
-    const lastAnnotation = annotations.pop();
-    undoStack.push(lastAnnotation);
-    redraw();
-    if (lastAnnotation.tool === 'text-highlighter') {
-      const parent = document.evaluate(lastAnnotation.parentXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      if (parent) {
-        const spans = parent.querySelectorAll(`span[id="${lastAnnotation.id}"]`);
-        spans.forEach(span => {
-          const text = document.createTextNode(span.textContent);
-          span.parentNode.replaceChild(text, span);
-        });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "pen") {
+    currentTool = message.status2 ? 'pen' : null;
+    canvas.style.pointerEvents = message.status2 ? 'auto' : 'none';
+  } else if (message.action === "highlighter") {
+    currentTool = message.status1 ? 'highlighter' : null;
+    canvas.style.pointerEvents = message.status1 ? 'none' : 'none';
+    if (currentTool === 'highlighter') {
+      document.addEventListener('mousedown', handleMouseDown);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('click', (event) => {
+        if (event.target.tagName === 'SPAN' && event.target.hasAttribute('highlight-id')) {
+          let highlightId = event.target.getAttribute('highlight-id');
+          let highlight = highlights.find(h => h.id === highlightId);
+          if (highlight && highlight.note) {
+            alert(`Note: ${highlight.note}`);
+          }
+        }
+      });
+    }
+  } else if (message.action === "color") {
+    currentColor = message.color;
+  } else if (message.action === "save") {
+    chrome.runtime.sendMessage({ action: "saveAnnotation", annotat: annotations, high: highlights }, (response) => {
+      if (response && response.status === "success") {
+        alert("Annotations have been Saved!");
+      }
+    });
+  } else if (message.action === "undo") {
+    tool_used = 1;
+    const currentAction = Actions.pop();
+    if (currentAction === 1) {
+      if (annotations.length > 0) {
+        const lastAnnotation = annotations.pop();
+        redraw(tool_used);
+      }
+    } else if (currentAction === 2) {
+      if (highlights.length > 0) {
+        const lastHighlight = highlights.pop();
+        const span = document.querySelector(`span[highlight-id="${lastHighlight.id}"]`);
+        if (span) {
+          span.replaceWith(document.createTextNode(span.textContent));
+        }
+        redraw(tool_used);
       }
     }
   }
-}
+});

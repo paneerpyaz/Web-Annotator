@@ -1,61 +1,77 @@
-document.getElementById('pen').addEventListener('click',()=>{
-  chrome.tabs.query({active: true,currentWindow: true},(tabs)=>{
-    chrome.tabs.sendMessage(tabs[0].id,{action: "pen"});
+document.addEventListener('DOMContentLoaded',()=>{
+  let c1 = false;
+  let c2 = false;
+  let c3 = "#FFFFFF";
+  function UpdateButton(){
+    document.getElementById('pen').style.backgroundColor = c1 ? '#D4D4D4' : 'FFFFFF';
+    document.getElementById('highlighter').style.backgroundColor = c2 ? '#D4D4D4' : 'FFFFFF';
+    document.getElementById('color-palette').value = c3.toString();
+  }
+  document.getElementById('pen').addEventListener('click', () => {
+    c1=!c1;
+    c2=false;
+    console.log(c1);
+    chrome.storage.local.set({ c1, c2, c3});
+    UpdateButton();
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "pen" , status1 : c2,status2 : c1});
+      } else {
+        console.error("No active tab found");
+      }
+    });
   });
-});
-
-document.getElementById('highlight-btn').addEventListener('click',()=>{
-  chrome.tabs.query({active: true,currentWindow: true},(tabs)=>{
-    chrome.tabs.sendMessage(tabs[0].id,{action: "highlight-btn"});
+  document.getElementById('highlighter').addEventListener('click', () => {
+    c2=!c2;
+    c1=false;
+    chrome.storage.local.set({ c1, c2, c3 });
+    UpdateButton();
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "highlighter" , status1 : c2,status2 : c1});
+      } else {
+        console.error("No active tab found");
+      }
+    });
   });
-});
-document.getElementById('save-btn').addEventListener('click',()=>{
-  chrome.tabs.query({active: true,currentWindow: true},(tabs)=>{
-    chrome.tabs.sendMessage(tabs[0].id,{action: "save-btn"});
-  }); 
-}); 
-let intervalId = null;
+  chrome.storage.local.get(['c1', 'c2','c3'], (result) => {
+    c1 = result.c1 || false;
+    c2 = result.c2 || false;
+    c3 = result.c3 || '#FFFF00';
+    UpdateButton();
+  });
+  document.getElementById('color-palette').addEventListener('change', (event) => {
+    const selectedColor=event.target.value;
+    c3 = selectedColor;
+    chrome.storage.local.set({ c1, c2, c3 });
+    UpdateButton();
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "color", color: selectedColor});
+      } else {
+        console.error("No active tab found");
+      }
+    });
+  });
 
-document.getElementById('undo-btn').addEventListener('mousedown', () => {
-    // intervalId = setInterval(() => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, { action: "undo-btn" });
-        });
-    // }, 50); // Adjust the interval as needed for the speed of repeating action
-});
-
-// document.getElementById('undo-btn').addEventListener('mouseup', () => {
-//     clearInterval(intervalId);
-// });
-
-// document.getElementById('undo-btn').addEventListener('mouseleave', () => {
-//     clearInterval(intervalId);
-// });
-
-
-document.getElementById('highlight-btn').addEventListener('click', () => {
-  document.getElementById('color-container').style.display = 'flex';
-});
-document.querySelectorAll('.color-btn').forEach(button => {
-  button.addEventListener('click', () => {
-    currentColor = button.getAttribute('data-color');
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "highlight-btn", color: currentColor });
+  document.getElementById('save').addEventListener('click', () => {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "save"});
+      } else {
+        console.error("No active tab found");
+      }
+    });
+  });
+  document.getElementById('undo').addEventListener('click', () => {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        console.log("Sending 'undo' action to content script");
+        chrome.tabs.sendMessage(tabs[0].id, {action: "undo"});
+      } else {
+        console.error("No active tab found");
+      }
     });
   });
 });
-document.addEventListener('DOMContentLoaded', function () {
-  const highlightBtn = document.getElementById('highlight-btn');
-  const colorContainer = document.getElementById('color-container');
-
-  // Show color container when highlight button is hovered
-  highlightBtn.addEventListener('mouseover', function() {
-    colorContainer.style.display = 'block';
-  });
-
-  // Hide color container when mouse leaves the color container
-  colorContainer.addEventListener('mouseleave', function() {
-    colorContainer.style.display = 'none';
-  });
-});
-
+  
