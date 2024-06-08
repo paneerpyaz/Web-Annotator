@@ -6,17 +6,7 @@ let isDrawing = false;
 let startX, startY;
 let canvas, ctx;
 
-// function saveAnnotations() {
-//   chrome.storage.local.set({ annotations: annotations }, () => {
-//     if (chrome.runtime.lastError) {
-//       console.error("Error saving annotations:", chrome.runtime.lastError);
-//       sendResponse({ status: "error", message: "Error saving annotations" });
-//     } else {
-//       console.log("Annotations saved successfully");
-//       sendResponse({ status: "success", message: "Annotations saved successfully" });
-//     }
-//   });
-// }
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "pen") {
     activateMarker();
@@ -26,13 +16,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "undo-btn") {
     undoLastAction();
   }
-  else if (message.action === "save") {
+  else if (message.action === "save-btn") {
     console.log("Saving annotations");
-    chrome.runtime.sendMessage({ action: "saveAnnotation", annotat: annotations, high: highlights }, (response) => {
-      if (response && response.status === "success") {
-        alert("Annotations Saved!");
-      }
-    });
+    saveAnnotations();
   }
 });
 
@@ -54,14 +40,7 @@ function deleteCanvas() {
     annotations = [];
   }
 }
-// function stopDrawing() {
-//   if (!isDrawing) return;
-//   isDrawing = false;
-//   if (path.length > 1) {
-//     annotations.push({ tool: 'pen', color: currentColor, path: path });
-//     undoStack.push({ action: 'add', annotation: annotations[annotations.length - 1] });
-//   }
-// }
+
 function activateHighlighter() {
   deleteCanvas();
   currentTool = 'text-highlighter';
@@ -94,13 +73,7 @@ function startDrawing(e) {
   startY = e.clientY;
   path = [{ x: startX, y: startY }];
 }
-// function SaveToolState() {
-//   chrome.storage.local.set({
-//     PenStatus: currentTool === 'pen',
-//     HighlighterStatus: currentTool === 'highlighter',
-//     ColorStatus: currentColor
-//   });
-// }
+
 function draw(e) {
   if (!isDrawing) return;
 
@@ -129,10 +102,24 @@ function stopDrawing() {
   }
 }
 
+function saveAnnotations() {
+  chrome.storage.local.set({ annotations: annotations }, () => {
+    if (chrome.runtime.lastError) {
+      console.error("Error saving annotations:", chrome.runtime.lastError);
+      sendResponse({ status: "error", message: "Error saving annotations" });
+    } else {
+      console.log("Annotations saved successfully");
+      sendResponse({ status: "success", message: "Annotations saved successfully" });
+    }
+  });
+}
+
 function loadAnnotations() {
-  chrome.runtime.sendMessage({ action: "loadAnnotations" }, (response) => {
-    if (response && response.annotations) {
-      annotations = response.annotations;
+  chrome.storage.local.get('annotations', (data) => {
+    if (chrome.runtime.lastError) {
+      console.error("Error loading annotations:", chrome.runtime.lastError);
+    } else {
+      annotations = data.annotations || [];
       redraw();
     }
   });
