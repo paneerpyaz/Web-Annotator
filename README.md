@@ -63,7 +63,7 @@ A typical Chrome extension is created by the numerous files, and it is further l
 
 The interaction between the components of a Chrome extension is essential for its seamless operation. Figures 1 and 2 will help for a better understanding as they visually demonstrate how a Chrome extension works.
 
-![Architecture Overview](./images/archi.jpg)
+![Architecture Overview](images/archi.jpg)
 *Figure 1: Architecture Overview*
 
 ![Flowchart](./images/flowchart.jpeg)
