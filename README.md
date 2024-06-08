@@ -1,4 +1,4 @@
-# Project Report: Web Annotator
+# Web Annotator
 
 **Author:** Siddhant Rohila 22115144
 
