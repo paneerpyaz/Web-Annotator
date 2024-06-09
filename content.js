@@ -275,15 +275,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       document.addEventListener('mousedown', handleMouseDown);
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('click', (event) => {
-        if (event.target.tagName === 'SPAN' && event.target.hasAttribute('highlight-id')) {
-          let highlightId = event.target.getAttribute('highlight-id');
-          let highlight = highlights.find(h => h.id === highlightId);
-          if (highlight && highlight.note) {
-            alert(`Note: ${highlight.note}`);
-          }
-        }
-      });
     }
   } else if (message.action === "color") {
     currentColor = message.color;
@@ -310,6 +301,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         redraw(tool_used);
       }
+    }
+  }
+});
+document.addEventListener('click', (event) => {
+  if (event.target.tagName === 'SPAN' && event.target.hasAttribute('highlight-id')) {
+    let highlightId = event.target.getAttribute('highlight-id');
+    let highlight = highlights.find(h => h.id === highlightId);
+    if (highlight && highlight.note) {
+      alert(`Note: ${highlight.note}`);
     }
   }
 });
